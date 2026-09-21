@@ -57,5 +57,3 @@ dependencies {
 
 }
 
-apply from: "$rootDir/bintray/install-bintray.gradle"
-apply from: "$rootDir/bintray/config-bintray.gradle"
