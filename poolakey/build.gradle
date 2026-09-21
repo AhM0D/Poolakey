@@ -20,10 +20,11 @@ android {
     }
 
     Properties properties = new Properties()
-    properties.load(rootProject.file('bazaar.properties').newDataInputStream())
+    properties.load(rootProject.file('markets.properties').newDataInputStream())
 
     buildTypes.each {
         it.buildConfigField 'String', 'BAZAAR_HASH', "\"${properties.getProperty('bazaarReleaseHash')}\""
+        it.buildConfigField 'String', 'MYKET_HASH', "\"${properties.getProperty('myketReleaseHash')}\""
     }
     buildTypes {
         release {
@@ -54,6 +55,8 @@ dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$libraryVersions.kotlin"
 
     api "androidx.fragment:fragment:$libraryVersions.fragment"
+
+    testImplementation 'junit:junit:4.13.2'
 
 }
 
