@@ -1,6 +1,5 @@
 package ir.cafebazaar.poolakey.constant
 
-import ir.cafebazaar.poolakey.BuildConfig
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -8,77 +7,67 @@ import org.junit.Test
 class MarketConfigTest {
 
     @Test
-    fun `resolve falls back to Bazaar when meta-data is absent`() {
-        val config = MarketConfig.resolve(marketId = null, bindAddress = null)
+    fun `resolve carries every supplied value through unchanged`() {
+        val config = MarketConfig.resolve(
+            marketId = "com.example.store",
+            bindAddress = "com.example.store.BIND",
+            hash = "AA:BB",
+            receiverClass = "com.example.store.Receiver",
+            receiverMinVersion = "42",
+            featureConfigMinVersion = "99",
+            supportsSubscription = "true",
+            supportsTrial = "false"
+        )
 
-        assertEquals("com.farsitel.bazaar", config.packageName)
-        assertEquals("ir.cafebazaar.pardakht.InAppBillingService.BIND", config.bindAddress)
-        assertEquals(BuildConfig.BAZAAR_HASH, config.signatureHash)
-        assertEquals(801301L, config.receiverConnectionMinVersion)
+        assertEquals("com.example.store", config.packageName)
+        assertEquals("com.example.store.BIND", config.bindAddress)
+        assertEquals("AA:BB", config.signatureHash)
+        assertEquals("com.example.store.Receiver", config.receiverComponentName)
+        assertEquals(42L, config.receiverConnectionMinVersion)
+        assertEquals(99L, config.featureConfigMinVersion)
+        assertEquals(true, config.supportsSubscription)
+        assertEquals(false, config.supportsTrialSubscription)
     }
 
     @Test
-    fun `resolve pins Bazaar and keeps its receiver gate`() {
+    fun `a missing hash refuses the connection`() {
         val config = MarketConfig.resolve(
-            marketId = "com.farsitel.bazaar",
-            bindAddress = "ir.cafebazaar.pardakht.InAppBillingService.BIND"
+            marketId = "com.example.store", bindAddress = "x", hash = null,
+            receiverClass = null, receiverMinVersion = "1", featureConfigMinVersion = "1",
+            supportsSubscription = "true", supportsTrial = "true"
         )
-
-        assertEquals(BuildConfig.BAZAAR_HASH, config.signatureHash)
-        assertEquals(801301L, config.receiverConnectionMinVersion)
-    }
-
-    @Test
-    fun `resolve pins Myket and disables the receiver path`() {
-        val config = MarketConfig.resolve(
-            marketId = "ir.mservices.market",
-            bindAddress = "ir.mservices.market.InAppBillingService.BIND"
-        )
-
-        assertEquals("ir.mservices.market", config.packageName)
-        assertEquals("ir.mservices.market.InAppBillingService.BIND", config.bindAddress)
-        assertEquals(BuildConfig.MYKET_HASH, config.signatureHash)
-        assertEquals(Long.MAX_VALUE, config.receiverConnectionMinVersion)
-    }
-
-    @Test
-    fun `resolve refuses an unknown market rather than leaving it unpinned`() {
-        val config = MarketConfig.resolve(
-            marketId = "com.example.rogue",
-            bindAddress = "com.example.rogue.Billing.BIND"
-        )
-
         assertNull(config.signatureHash)
+    }
+
+    @Test
+    fun `a blank receiver class means no explicit component`() {
+        val config = MarketConfig.resolve(
+            marketId = "s", bindAddress = "b", hash = "h", receiverClass = "  ",
+            receiverMinVersion = "1", featureConfigMinVersion = "1",
+            supportsSubscription = "true", supportsTrial = "true"
+        )
+        assertNull(config.receiverComponentName)
+    }
+
+    @Test
+    fun `an unparseable version disables that transport rather than crashing`() {
+        val config = MarketConfig.resolve(
+            marketId = "s", bindAddress = "b", hash = "h", receiverClass = null,
+            receiverMinVersion = "not-a-number", featureConfigMinVersion = "",
+            supportsSubscription = "true", supportsTrial = "true"
+        )
         assertEquals(Long.MAX_VALUE, config.receiverConnectionMinVersion)
+        assertEquals(Long.MAX_VALUE, config.featureConfigMinVersion)
     }
 
     @Test
-    fun `resolve ignores a blank market id`() {
-        val config = MarketConfig.resolve(marketId = "", bindAddress = "")
-
-        assertEquals("com.farsitel.bazaar", config.packageName)
-        assertEquals(BuildConfig.BAZAAR_HASH, config.signatureHash)
-    }
-
-    @Test
-    fun `resolve falls back to Myket's own bind address when none is supplied`() {
+    fun `capability flags default to false when absent`() {
         val config = MarketConfig.resolve(
-            marketId = "ir.mservices.market",
-            bindAddress = null
+            marketId = "s", bindAddress = "b", hash = "h", receiverClass = null,
+            receiverMinVersion = "1", featureConfigMinVersion = "1",
+            supportsSubscription = null, supportsTrial = null
         )
-
-        assertEquals(Const.MYKET_BIND_ADDRESS, config.bindAddress)
-        assertEquals(BuildConfig.MYKET_HASH, config.signatureHash)
-    }
-
-    @Test
-    fun `resolve falls back to Myket's own bind address when it is blank`() {
-        val config = MarketConfig.resolve(
-            marketId = "ir.mservices.market",
-            bindAddress = ""
-        )
-
-        assertEquals(Const.MYKET_BIND_ADDRESS, config.bindAddress)
-        assertEquals(BuildConfig.MYKET_HASH, config.signatureHash)
+        assertEquals(false, config.supportsSubscription)
+        assertEquals(false, config.supportsTrialSubscription)
     }
 }

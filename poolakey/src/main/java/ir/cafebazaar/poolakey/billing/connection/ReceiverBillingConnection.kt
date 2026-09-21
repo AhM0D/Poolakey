@@ -1,5 +1,6 @@
 package ir.cafebazaar.poolakey.billing.connection
 
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
@@ -26,7 +27,6 @@ import ir.cafebazaar.poolakey.config.SecurityCheck
 import ir.cafebazaar.poolakey.constant.BazaarIntent
 import ir.cafebazaar.poolakey.constant.BazaarIntent.REQUEST_SKU_DETAILS_LIST
 import ir.cafebazaar.poolakey.constant.Billing
-import ir.cafebazaar.poolakey.constant.Const.BAZAAR_PACKAGE_NAME
 import ir.cafebazaar.poolakey.constant.MarketConfig
 import ir.cafebazaar.poolakey.exception.BazaarNotFoundException
 import ir.cafebazaar.poolakey.exception.BazaarNotSupportedException
@@ -62,10 +62,36 @@ internal class ReceiverBillingConnection(
 
     private var receiverCommunicator: BillingReceiverCommunicator? = null
     private var disconnected: Boolean = false
-    private var bazaarVersionCode: Long = 0L
+    private var marketVersionCode: Long = 0L
     private var marketConfig: MarketConfig? = null
 
     private var purchaseWeakReference: WeakReference<PurchaseWeakHolder>? = null
+
+    // Every action is derived from the market's own package name, supplied at runtime
+    // through MarketConfig. No market identity is ever compared or embedded here.
+    private val actionPrefix: String
+        get() = "${marketConfig?.packageName.orEmpty()}."
+
+    private val actionBillingSupport: String get() = actionPrefix + "billingSupport"
+    private val actionConsume: String get() = actionPrefix + "consume"
+    private val actionPurchase: String get() = actionPrefix + "purchase"
+    private val actionQueryPurchases: String get() = actionPrefix + "getPurchase"
+    private val actionGetSkuDetail: String get() = actionPrefix + "skuDetail"
+    private val actionGetFeatureConfig: String get() = actionPrefix + "featureConfig"
+    private val actionCheckTrialSubscription: String get() = actionPrefix + "checkTrialSubscription"
+
+    private val actionReceiveBillingSupport: String
+        get() = actionBillingSupport + ACTION_RECEIVE_SUFFIX
+    private val actionReceiveConsume: String get() = actionConsume + ACTION_RECEIVE_SUFFIX
+    private val actionReceivePurchase: String get() = actionPurchase + ACTION_RECEIVE_SUFFIX
+    private val actionReceiveQueryPurchases: String
+        get() = actionQueryPurchases + ACTION_RECEIVE_SUFFIX
+    private val actionReceiveSkuDetails: String
+        get() = actionGetSkuDetail + ACTION_RECEIVE_SUFFIX
+    private val actionReceiveGetFeatureConfig: String
+        get() = actionGetFeatureConfig + ACTION_RECEIVE_SUFFIX
+    private val actionReceiveCheckTrialSubscription: String
+        get() = actionCheckTrialSubscription + ACTION_RECEIVE_SUFFIX
 
     override fun startConnection(
         context: Context,
@@ -81,7 +107,7 @@ internal class ReceiverBillingConnection(
             return ConnectionResult.Failed(BazaarNotFoundException())
         }
 
-        bazaarVersionCode = getPackageInfo(context, marketConfig.packageName)?.let {
+        marketVersionCode = getPackageInfo(context, marketConfig.packageName)?.let {
             sdkAwareVersionCode(it)
         } ?: 0L
 
@@ -99,9 +125,8 @@ internal class ReceiverBillingConnection(
     }
 
     private fun canConnectWithReceiverComponent(): Boolean {
-        val minVersion = marketConfig?.receiverConnectionMinVersion
-            ?: BAZAAR_WITH_RECEIVER_CONNECTION_VERSION
-        return bazaarVersionCode > minVersion
+        val minVersion = marketConfig?.receiverConnectionMinVersion ?: Long.MAX_VALUE
+        return marketVersionCode > minVersion
     }
 
     private fun createReceiverConnection() {
@@ -134,25 +159,25 @@ internal class ReceiverBillingConnection(
 
     private fun onActionReceived(action: String, extras: Bundle?) {
         when (action) {
-            ACTION_RECEIVE_BILLING_SUPPORT -> {
+            actionReceiveBillingSupport -> {
                 onBillingSupportActionReceived(extras)
             }
-            ACTION_RECEIVE_CONSUME -> {
+            actionReceiveConsume -> {
                 onConsumeActionReceived(extras)
             }
-            ACTION_RECEIVE_PURCHASE -> {
+            actionReceivePurchase -> {
                 onPurchaseReceived(extras)
             }
-            ACTION_RECEIVE_QUERY_PURCHASES -> {
+            actionReceiveQueryPurchases -> {
                 onQueryPurchaseReceived(extras)
             }
-            ACTION_RECEIVE_SKU_DETAILS -> {
+            actionReceiveSkuDetails -> {
                 onGetSkuDetailsReceived(extras)
             }
-            ACTION_RECEIVE_GET_FEATURE_CONFIG -> {
+            actionReceiveGetFeatureConfig -> {
                 onGetFeatureConfigReceived(extras)
             }
-            ACTION_RECEIVE_CHECK_TRIAL_SUBSCRIPTION -> {
+            actionReceiveCheckTrialSubscription -> {
                 onCheckTrialSubscriptionReceived(extras)
             }
         }
@@ -160,7 +185,7 @@ internal class ReceiverBillingConnection(
 
     private fun isPurchaseTypeSupported() {
         getNewIntentForBroadcast().apply {
-            action = ACTION_BILLING_SUPPORT
+            action = actionBillingSupport
         }.run(::sendBroadcast)
     }
 
@@ -168,7 +193,7 @@ internal class ReceiverBillingConnection(
         consumeCallback = callback
 
         getNewIntentForBroadcast().apply {
-            action = ACTION_CONSUME
+            action = actionConsume
             putExtra(KEY_TOKEN, purchaseToken)
         }.run(::sendBroadcast)
     }
@@ -179,7 +204,7 @@ internal class ReceiverBillingConnection(
     ) {
         queryCallback = callback
         getNewIntentForBroadcast().apply {
-            action = ACTION_QUERY_PURCHASES
+            action = actionQueryPurchases
             putExtra(KEY_ITEM_TYPE, purchaseType.type)
         }.run(::sendBroadcast)
     }
@@ -203,7 +228,7 @@ internal class ReceiverBillingConnection(
     ) {
         skuDetailCallback = callback
         getNewIntentForBroadcast().apply {
-            action = ACTION_GET_SKU_DETAIL
+            action = actionGetSkuDetail
             putExtra(KEY_ITEM_TYPE, request.purchaseType.type)
             putStringArrayListExtra(REQUEST_SKU_DETAILS_LIST, ArrayList(request.skuIds))
         }.run(::sendBroadcast)
@@ -214,7 +239,7 @@ internal class ReceiverBillingConnection(
     ) {
         featureConfigCallback = callback
         getNewIntentForBroadcast().apply {
-            action = ACTION_GET_FEATURE_CONFIG
+            action = actionGetFeatureConfig
         }.run(::sendBroadcast)
     }
 
@@ -223,11 +248,24 @@ internal class ReceiverBillingConnection(
         callback: CheckTrialSubscriptionCallback.() -> Unit
     ) {
         checkTrialSubscriptionCallback = callback
+
+        // A market that declares no trial-subscription capability also declares no
+        // receiver for this broadcast. Waiting for a reply that will never arrive
+        // would hang the caller forever, so fail fast through the existing callback
+        // path instead of ever sending the broadcast.
+        if (marketConfig?.supportsTrialSubscription != true) {
+            CheckTrialSubscriptionCallback()
+                .apply(requireNotNull(checkTrialSubscriptionCallback))
+                .checkTrialSubscriptionFailed
+                .invoke(BazaarNotSupportedException())
+            return
+        }
+
         isFeatureSupportedByBazaar(
             feature = Feature.CHECK_TRIAL_SUBSCRIPTION,
             isSupported = {
                 getNewIntentForBroadcast().apply {
-                    action = ACTION_CHECK_TRIAL_SUBSCRIPTION
+                    action = actionCheckTrialSubscription
                 }.run(::sendBroadcast)
             },
             error = {
@@ -264,7 +302,8 @@ internal class ReceiverBillingConnection(
     }
 
     private fun isBazaarVersionSupportedFeatureConfig(): Boolean {
-        return bazaarVersionCode >= BAZAAR_WITH_FEATURE_CONFIG_VERSION
+        val minVersion = marketConfig?.featureConfigMinVersion ?: Long.MAX_VALUE
+        return marketVersionCode >= minVersion
     }
 
     private fun sendPurchaseBroadcast(
@@ -274,7 +313,7 @@ internal class ReceiverBillingConnection(
     ) {
         PurchaseCallback().apply(callback).purchaseFlowBegan.invoke()
         getNewIntentForBroadcast().apply {
-            action = ACTION_PURCHASE
+            action = actionPurchase
             putExtra(KEY_SKU, purchaseRequest.productId)
             putExtra(KEY_DEVELOPER_PAYLOAD, purchaseRequest.payload)
             putExtra(KEY_ITEM_TYPE, purchaseType.type)
@@ -448,8 +487,12 @@ internal class ReceiverBillingConnection(
     }
 
     private fun isSubscriptionSupport(extras: Bundle?): Boolean {
+        // A market that declares no subscription capability at all overrides whatever
+        // the broadcast reply claims - it never gets the chance to claim support.
+        val marketSupportsSubscription = marketConfig?.supportsSubscription ?: true
         val isSubscriptionSupport = extras?.getBoolean(KEY_SUBSCRIPTION_SUPPORT) ?: false
-        return !paymentConfiguration.shouldSupportSubscription || isSubscriptionSupport
+        return !paymentConfiguration.shouldSupportSubscription ||
+            (marketSupportsSubscription && isSubscriptionSupport)
     }
 
     private fun isResponseSucceed(extras: Bundle?): Boolean {
@@ -471,7 +514,10 @@ internal class ReceiverBillingConnection(
             putInt(KEY_API_VERSION, Billing.IN_APP_BILLING_VERSION)
         }
         return Intent().apply {
-            `package` = BAZAAR_PACKAGE_NAME
+            `package` = marketConfig?.packageName
+            marketConfig?.receiverComponentName?.let { receiverClassName ->
+                component = ComponentName(marketConfig?.packageName.orEmpty(), receiverClassName)
+            }
             putExtras(bundle)
         }
     }
@@ -489,34 +535,11 @@ internal class ReceiverBillingConnection(
 
     companion object {
 
-        private const val BAZAAR_WITH_RECEIVER_CONNECTION_VERSION = 801301L
-        private const val BAZAAR_WITH_FEATURE_CONFIG_VERSION = 1400500
-
         private const val DEFAULT_SECURE_SIGNATURE = "secureBroadcastKey"
-        private const val ACTION_BAZAAR_BASE = "com.farsitel.bazaar."
-        private const val ACTION_BAZAAR_POST = ".iab"
 
-        private const val ACTION_BILLING_SUPPORT = ACTION_BAZAAR_BASE + "billingSupport"
-        private const val ACTION_CONSUME = ACTION_BAZAAR_BASE + "consume"
-        private const val ACTION_PURCHASE = ACTION_BAZAAR_BASE + "purchase"
-        private const val ACTION_QUERY_PURCHASES = ACTION_BAZAAR_BASE + "getPurchase"
-        private const val ACTION_GET_SKU_DETAIL = ACTION_BAZAAR_BASE + "skuDetail"
-        private const val ACTION_GET_FEATURE_CONFIG = ACTION_BAZAAR_BASE + "featureConfig"
-        private const val ACTION_CHECK_TRIAL_SUBSCRIPTION =
-            ACTION_BAZAAR_BASE + "checkTrialSubscription"
-
-        private const val ACTION_RECEIVE_CONSUME = ACTION_CONSUME + ACTION_BAZAAR_POST
-        private const val ACTION_RECEIVE_PURCHASE = ACTION_PURCHASE + ACTION_BAZAAR_POST
-        private const val ACTION_RECEIVE_BILLING_SUPPORT =
-            ACTION_BILLING_SUPPORT + ACTION_BAZAAR_POST
-        private const val ACTION_RECEIVE_QUERY_PURCHASES =
-            ACTION_QUERY_PURCHASES + ACTION_BAZAAR_POST
-        private const val ACTION_RECEIVE_SKU_DETAILS =
-            ACTION_GET_SKU_DETAIL + ACTION_BAZAAR_POST
-        private const val ACTION_RECEIVE_GET_FEATURE_CONFIG =
-            ACTION_GET_FEATURE_CONFIG + ACTION_BAZAAR_POST
-        private const val ACTION_RECEIVE_CHECK_TRIAL_SUBSCRIPTION =
-            ACTION_CHECK_TRIAL_SUBSCRIPTION + ACTION_BAZAAR_POST
+        // Market-independent: this is the suffix BillingReceiver.onReceive appends to
+        // whatever action the market's own broadcast carried.
+        private const val ACTION_RECEIVE_SUFFIX = ".iab"
 
         private const val KEY_SUBSCRIPTION_SUPPORT = "subscriptionSupport"
         private const val KEY_PACKAGE_NAME = "packageName"
