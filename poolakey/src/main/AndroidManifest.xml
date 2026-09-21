@@ -2,22 +2,28 @@
     package="ir.cafebazaar.poolakey">
 
     <queries>
-        <package android:name="com.farsitel.bazaar" />
+        <package android:name="${marketApplicationId}" />
     </queries>
 
     <uses-permission android:name="${marketPermission}" />
 
     <application>
+        <meta-data
+            android:name="market_id"
+            android:value="${marketApplicationId}" />
+        <meta-data
+            android:name="market_bind"
+            android:value="${marketBindAddress}" />
+
         <receiver android:name=".receiver.BillingReceiver"
-              android:exported="true"     
-                  >
+            android:exported="true">
             <intent-filter>
-                <action android:name="com.farsitel.bazaar.purchase" />
-                <action android:name="com.farsitel.bazaar.billingSupport" />
-                <action android:name="com.farsitel.bazaar.consume" />
-                <action android:name="com.farsitel.bazaar.getPurchase" />
-                <action android:name="com.farsitel.bazaar.skuDetail" />
-                <action android:name="com.farsitel.bazaar.checkTrialSubscription" />
+                <action android:name="${marketApplicationId}.purchase" />
+                <action android:name="${marketApplicationId}.billingSupport" />
+                <action android:name="${marketApplicationId}.consume" />
+                <action android:name="${marketApplicationId}.getPurchase" />
+                <action android:name="${marketApplicationId}.skuDetail" />
+                <action android:name="${marketApplicationId}.checkTrialSubscription" />
             </intent-filter>
         </receiver>
     </application>

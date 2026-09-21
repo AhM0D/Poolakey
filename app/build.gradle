@@ -11,6 +11,11 @@ android {
         targetSdkVersion buildVersions.targetSdkVersion
         versionCode 1
         versionName "1.0.0"
+        manifestPlaceholders = [
+                marketApplicationId: "com.farsitel.bazaar",
+                marketBindAddress  : "ir.cafebazaar.pardakht.InAppBillingService.BIND",
+                marketPermission   : "com.farsitel.bazaar.permission.PAY_THROUGH_BAZAAR"
+        ]
     }
     Properties properties = new Properties()
     properties.load(rootProject.file('app.properties').newDataInputStream())
