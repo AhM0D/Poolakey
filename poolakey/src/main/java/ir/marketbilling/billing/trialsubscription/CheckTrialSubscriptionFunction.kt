@@ -13,11 +13,11 @@ import ir.marketbilling.entity.TrialSubscriptionInfo
 import ir.marketbilling.exception.MarketNotSupportedException
 import ir.marketbilling.exception.ResultNotOkayException
 import ir.marketbilling.takeIf
-import ir.marketbilling.thread.PoolakeyThread
+import ir.marketbilling.thread.BillingThread
 
 internal class CheckTrialSubscriptionFunction(
     private val context: Context,
-    private val mainThread: PoolakeyThread<() -> Unit>
+    private val mainThread: BillingThread<() -> Unit>
 ) : BillingFunction<CheckTrialSubscriptionFunctionRequest> {
 
     override fun function(
@@ -71,7 +71,7 @@ internal fun extractTrialSubscriptionDataFromBundle(
 }
 
 private fun Bundle.takeIfBundleContainsCorrectResponseKeyOrThrowException(
-    mainThread: PoolakeyThread<() -> Unit>,
+    mainThread: BillingThread<() -> Unit>,
     callback: CheckTrialSubscriptionCallback.() -> Unit
 ): Bundle? {
     return takeIf(
@@ -89,7 +89,7 @@ private fun Bundle.takeIfBundleContainsCorrectResponseKeyOrThrowException(
 }
 
 private fun Bundle.takeIfIsResponseOKOrThrowException(
-    mainThread: PoolakeyThread<() -> Unit>,
+    mainThread: BillingThread<() -> Unit>,
     callback: CheckTrialSubscriptionCallback.() -> Unit
 ): Bundle? {
     return takeIf(

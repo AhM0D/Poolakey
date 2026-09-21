@@ -9,10 +9,10 @@ import ir.marketbilling.constant.MarketIntent
 import ir.marketbilling.constant.Billing
 import ir.marketbilling.exception.ConsumeFailedException
 import ir.marketbilling.takeIf
-import ir.marketbilling.thread.PoolakeyThread
+import ir.marketbilling.thread.BillingThread
 
 internal class ConsumeFunction(
-    private val mainThread: PoolakeyThread<() -> Unit>,
+    private val mainThread: BillingThread<() -> Unit>,
     private val context: Context
 ) : BillingFunction<ConsumeFunctionRequest> {
 

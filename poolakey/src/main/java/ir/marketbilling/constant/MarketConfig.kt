@@ -18,7 +18,7 @@ internal data class MarketConfig(
 
     companion object {
 
-        private const val TAG = "Poolakey"
+        private const val TAG = "MarketBilling"
         private const val META_DATA_MARKET_ID = "market_id"
         private const val META_DATA_BIND_ADDRESS = "market_bind"
         private const val META_DATA_HASH = "market_hash"

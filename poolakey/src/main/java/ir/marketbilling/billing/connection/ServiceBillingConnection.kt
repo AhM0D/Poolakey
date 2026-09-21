@@ -41,13 +41,13 @@ import ir.marketbilling.exception.IAPNotSupportedException
 import ir.marketbilling.exception.SubsNotSupportedException
 import ir.marketbilling.request.PurchaseRequest
 import ir.marketbilling.security.Security
-import ir.marketbilling.thread.PoolakeyThread
+import ir.marketbilling.thread.BillingThread
 import java.lang.ref.WeakReference
 
 internal class ServiceBillingConnection(
     private val context: Context,
-    mainThread: PoolakeyThread<() -> Unit>,
-    private val backgroundThread: PoolakeyThread<Runnable>,
+    mainThread: BillingThread<() -> Unit>,
+    private val backgroundThread: BillingThread<Runnable>,
     private val paymentConfiguration: PaymentConfiguration,
     private val queryFunction: QueryFunction,
     private val getSkuDetailFunction: GetSkuDetailFunction,

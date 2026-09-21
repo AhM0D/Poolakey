@@ -11,11 +11,11 @@ import ir.marketbilling.constant.Billing
 import ir.marketbilling.entity.SkuDetails
 import ir.marketbilling.exception.ResultNotOkayException
 import ir.marketbilling.takeIf
-import ir.marketbilling.thread.PoolakeyThread
+import ir.marketbilling.thread.BillingThread
 
 internal class GetSkuDetailFunction(
     private val context: Context,
-    private val mainThread: PoolakeyThread<() -> Unit>
+    private val mainThread: BillingThread<() -> Unit>
 ) : BillingFunction<SkuDetailFunctionRequest> {
 
     override fun function(
@@ -64,7 +64,7 @@ internal fun extractSkuDetailDataFromBundle(
 }
 
 private fun Bundle.takeIfBundleContainsCorrectResponseKeyOrThrowException(
-    mainThread: PoolakeyThread<() -> Unit>,
+    mainThread: BillingThread<() -> Unit>,
     callback: GetSkuDetailsCallback.() -> Unit
 ): Bundle? {
     return takeIf(
@@ -82,7 +82,7 @@ private fun Bundle.takeIfBundleContainsCorrectResponseKeyOrThrowException(
 }
 
 private fun Bundle.takeIfIsResponseOKOrThrowException(
-    mainThread: PoolakeyThread<() -> Unit>,
+    mainThread: BillingThread<() -> Unit>,
     callback: GetSkuDetailsCallback.() -> Unit
 ): Bundle? {
     return takeIf(

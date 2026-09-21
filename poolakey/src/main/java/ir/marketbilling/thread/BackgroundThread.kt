@@ -3,7 +3,7 @@ package ir.marketbilling.thread
 import android.os.Handler
 import android.os.HandlerThread
 
-internal class BackgroundThread : HandlerThread("PoolakeyThread"), PoolakeyThread<Runnable> {
+internal class BackgroundThread : HandlerThread("BillingThread"), BillingThread<Runnable> {
 
     init {
         start()

@@ -17,15 +17,15 @@ import ir.marketbilling.request.PurchaseRequest
 import ir.marketbilling.security.PurchaseVerifier
 import ir.marketbilling.thread.BackgroundThread
 import ir.marketbilling.thread.MainThread
-import ir.marketbilling.thread.PoolakeyThread
+import ir.marketbilling.thread.BillingThread
 
 class Payment(
     context: Context,
     config: PaymentConfiguration
 ) {
 
-    private val backgroundThread: PoolakeyThread<Runnable> = BackgroundThread()
-    private val mainThread: PoolakeyThread<() -> Unit> = MainThread()
+    private val backgroundThread: BillingThread<Runnable> = BackgroundThread()
+    private val mainThread: BillingThread<() -> Unit> = MainThread()
 
     private val purchaseVerifier = PurchaseVerifier()
     private val rawDataToPurchaseInfo = RawDataToPurchaseInfo()

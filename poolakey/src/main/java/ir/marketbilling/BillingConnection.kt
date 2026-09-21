@@ -24,17 +24,17 @@ import ir.marketbilling.callback.PurchaseCallback
 import ir.marketbilling.callback.PurchaseQueryCallback
 import ir.marketbilling.config.PaymentConfiguration
 import ir.marketbilling.request.PurchaseRequest
-import ir.marketbilling.thread.PoolakeyThread
+import ir.marketbilling.thread.BillingThread
 
 internal class BillingConnection(
     private val context: Context,
     private val paymentConfiguration: PaymentConfiguration,
-    private val backgroundThread: PoolakeyThread<Runnable>,
+    private val backgroundThread: BillingThread<Runnable>,
     private val queryFunction: QueryFunction,
     private val skuDetailFunction: GetSkuDetailFunction,
     private val purchaseResultParser: PurchaseResultParser,
     private val checkTrialSubscriptionFunction: CheckTrialSubscriptionFunction,
-    private val mainThread: PoolakeyThread<() -> Unit>
+    private val mainThread: BillingThread<() -> Unit>
 ) {
 
     private var callback: ConnectionCallback? = null

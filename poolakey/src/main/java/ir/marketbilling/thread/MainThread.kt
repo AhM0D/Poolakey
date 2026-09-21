@@ -4,7 +4,7 @@ import android.os.Handler
 import android.os.Looper
 import android.os.Message
 
-internal class MainThread : Handler(Looper.getMainLooper()), PoolakeyThread<() -> Unit> {
+internal class MainThread : Handler(Looper.getMainLooper()), BillingThread<() -> Unit> {
 
     override fun handleMessage(message: Message) {
         super.handleMessage(message)

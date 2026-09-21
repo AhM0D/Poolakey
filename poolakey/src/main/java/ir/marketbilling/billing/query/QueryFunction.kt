@@ -11,13 +11,13 @@ import ir.marketbilling.exception.ResultNotOkayException
 import ir.marketbilling.mapper.RawDataToPurchaseInfo
 import ir.marketbilling.security.PurchaseVerifier
 import ir.marketbilling.takeIf
-import ir.marketbilling.thread.PoolakeyThread
+import ir.marketbilling.thread.BillingThread
 
 internal class QueryFunction(
     private val rawDataToPurchaseInfo: RawDataToPurchaseInfo,
     private val purchaseVerifier: PurchaseVerifier,
     private val paymentConfiguration: PaymentConfiguration,
-    private val mainThread: PoolakeyThread<() -> Unit>,
+    private val mainThread: BillingThread<() -> Unit>,
 ) {
 
     fun function(request: QueryFunctionRequest): Unit = with(request) {
