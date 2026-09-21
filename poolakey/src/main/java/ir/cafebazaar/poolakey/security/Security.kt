@@ -5,8 +5,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.content.pm.Signature
 import android.os.Build
-import ir.cafebazaar.poolakey.BuildConfig
-import ir.cafebazaar.poolakey.constant.Const.BAZAAR_PACKAGE_NAME
+import ir.cafebazaar.poolakey.constant.MarketConfig
 import ir.cafebazaar.poolakey.getPackageInfo
 import java.io.ByteArrayInputStream
 import java.io.InputStream
@@ -17,9 +16,12 @@ import java.util.*
 
 internal object Security {
 
-    fun verifyBazaarIsInstalled(context: Context): Boolean {
+    fun verifyMarketIsInstalled(context: Context, marketConfig: MarketConfig): Boolean {
 
-        if (getPackageInfo(context, BAZAAR_PACKAGE_NAME) == null) {
+        val expectedHash = marketConfig.signatureHash ?: return false
+        val marketPackageName = marketConfig.packageName
+
+        if (getPackageInfo(context, marketPackageName) == null) {
             return false
         }
 
@@ -29,13 +31,13 @@ internal object Security {
         @SuppressLint("PackageManagerGetSignatures")
         val signatures: Array<Signature> = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             val packageInfo = packageManager.getPackageInfo(
-                BAZAAR_PACKAGE_NAME,
+                marketPackageName,
                 PackageManager.GET_SIGNING_CERTIFICATES
             )
             packageInfo.signingInfo.apkContentsSigners
         } else {
             val packageInfo = packageManager.getPackageInfo(
-                BAZAAR_PACKAGE_NAME,
+                marketPackageName,
                 PackageManager.GET_SIGNATURES
             )
             packageInfo.signatures
@@ -49,7 +51,7 @@ internal object Security {
                 .generateCertificate(input) as X509Certificate
             val publicKey: PublicKey = certificate.publicKey
             val certificateHex = byte2HexFormatted(publicKey.encoded)
-            if (BuildConfig.BAZAAR_HASH != certificateHex) {
+            if (expectedHash != certificateHex) {
                 certificateMatch = false
                 break
             }
