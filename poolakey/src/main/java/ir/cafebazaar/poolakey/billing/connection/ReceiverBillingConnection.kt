@@ -488,8 +488,11 @@ internal class ReceiverBillingConnection(
 
     private fun isSubscriptionSupport(extras: Bundle?): Boolean {
         // A market that declares no subscription capability at all overrides whatever
-        // the broadcast reply claims - it never gets the chance to claim support.
-        val marketSupportsSubscription = marketConfig?.supportsSubscription ?: true
+        // the broadcast reply claims - it never gets the chance to claim support. Fails
+        // closed like every other default in this class: an unset marketConfig (not
+        // reachable in practice - it is always assigned before this can be called)
+        // means "not supported" rather than "supported".
+        val marketSupportsSubscription = marketConfig?.supportsSubscription ?: false
         val isSubscriptionSupport = extras?.getBoolean(KEY_SUBSCRIPTION_SUPPORT) ?: false
         return !paymentConfiguration.shouldSupportSubscription ||
             (marketSupportsSubscription && isSubscriptionSupport)

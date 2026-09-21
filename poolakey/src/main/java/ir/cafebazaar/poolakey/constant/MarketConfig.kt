@@ -91,7 +91,7 @@ internal data class MarketConfig(
         }
 
         private fun readMetaData(context: Context): MarketConfig {
-            return try {
+            val config = try {
                 val metaData = context.packageManager
                     .getApplicationInfo(context.packageName, PackageManager.GET_META_DATA)
                     .metaData
@@ -119,6 +119,30 @@ internal data class MarketConfig(
                     supportsTrial = null
                 )
             }
+            logResolvedConfig(config)
+            return config
+        }
+
+        // Runs once per process (readMetaData is only ever called from the cached
+        // from(context) accessor). This is deliberately the only way to verify the
+        // AAPT round-trip fix on a real device: Robolectric cannot reproduce AAPT's
+        // Integer/Boolean typing of numeric- or boolean-looking meta-data values, so
+        // no unit test can exercise this path. A device tester greps logcat for this
+        // line and checks the two version gates are real numbers (not
+        // 9223372036854775807) and the two capability flags are the expected
+        // true/false, rather than everything having silently failed closed.
+        private fun logResolvedConfig(config: MarketConfig) {
+            Log.i(
+                TAG,
+                "MarketConfig resolved: packageName=${config.packageName}, " +
+                    "bindAddress=${config.bindAddress}, " +
+                    "hash=${if (config.signatureHash != null) "present" else "absent"}, " +
+                    "receiverComponentName=${config.receiverComponentName}, " +
+                    "receiverConnectionMinVersion=${config.receiverConnectionMinVersion}, " +
+                    "featureConfigMinVersion=${config.featureConfigMinVersion}, " +
+                    "supportsSubscription=${config.supportsSubscription}, " +
+                    "supportsTrialSubscription=${config.supportsTrialSubscription}"
+            )
         }
     }
 }
