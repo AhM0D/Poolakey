@@ -30,20 +30,19 @@ internal data class MarketConfig(
         fun resolve(marketId: String?, bindAddress: String?): MarketConfig {
             val resolvedId = marketId?.takeIf { it.isNotBlank() }
                 ?: Const.BAZAAR_PACKAGE_NAME
-            val resolvedBind = bindAddress?.takeIf { it.isNotBlank() }
-                ?: Const.BAZAAR_BIND_ADDRESS
+            val suppliedBind = bindAddress?.takeIf { it.isNotBlank() }
 
             return when (resolvedId) {
                 Const.BAZAAR_PACKAGE_NAME -> MarketConfig(
                     packageName = resolvedId,
-                    bindAddress = resolvedBind,
+                    bindAddress = suppliedBind ?: Const.BAZAAR_BIND_ADDRESS,
                     signatureHash = BuildConfig.BAZAAR_HASH,
                     receiverConnectionMinVersion =
                         Const.BAZAAR_RECEIVER_CONNECTION_MIN_VERSION
                 )
                 Const.MYKET_PACKAGE_NAME -> MarketConfig(
                     packageName = resolvedId,
-                    bindAddress = resolvedBind,
+                    bindAddress = suppliedBind ?: Const.MYKET_BIND_ADDRESS,
                     signatureHash = BuildConfig.MYKET_HASH,
                     receiverConnectionMinVersion = Long.MAX_VALUE
                 )
@@ -51,7 +50,7 @@ internal data class MarketConfig(
                     Log.w(TAG, "Unknown market '$resolvedId'; refusing to connect.")
                     MarketConfig(
                         packageName = resolvedId,
-                        bindAddress = resolvedBind,
+                        bindAddress = suppliedBind ?: Const.BAZAAR_BIND_ADDRESS,
                         signatureHash = null,
                         receiverConnectionMinVersion = Long.MAX_VALUE
                     )

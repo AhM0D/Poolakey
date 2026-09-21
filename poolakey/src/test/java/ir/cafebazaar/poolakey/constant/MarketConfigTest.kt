@@ -59,4 +59,26 @@ class MarketConfigTest {
         assertEquals("com.farsitel.bazaar", config.packageName)
         assertEquals(BuildConfig.BAZAAR_HASH, config.signatureHash)
     }
+
+    @Test
+    fun `resolve falls back to Myket's own bind address when none is supplied`() {
+        val config = MarketConfig.resolve(
+            marketId = "ir.mservices.market",
+            bindAddress = null
+        )
+
+        assertEquals(Const.MYKET_BIND_ADDRESS, config.bindAddress)
+        assertEquals(BuildConfig.MYKET_HASH, config.signatureHash)
+    }
+
+    @Test
+    fun `resolve falls back to Myket's own bind address when it is blank`() {
+        val config = MarketConfig.resolve(
+            marketId = "ir.mservices.market",
+            bindAddress = ""
+        )
+
+        assertEquals(Const.MYKET_BIND_ADDRESS, config.bindAddress)
+        assertEquals(BuildConfig.MYKET_HASH, config.signatureHash)
+    }
 }
