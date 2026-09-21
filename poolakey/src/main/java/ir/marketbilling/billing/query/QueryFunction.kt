@@ -1,0 +1,92 @@
+package ir.marketbilling.billing.query
+
+import android.os.Bundle
+import android.os.RemoteException
+import ir.marketbilling.callback.PurchaseQueryCallback
+import ir.marketbilling.config.PaymentConfiguration
+import ir.marketbilling.config.SecurityCheck
+import ir.marketbilling.constant.MarketIntent
+import ir.marketbilling.entity.PurchaseInfo
+import ir.marketbilling.exception.ResultNotOkayException
+import ir.marketbilling.mapper.RawDataToPurchaseInfo
+import ir.marketbilling.security.PurchaseVerifier
+import ir.marketbilling.takeIf
+import ir.marketbilling.thread.PoolakeyThread
+
+internal class QueryFunction(
+    private val rawDataToPurchaseInfo: RawDataToPurchaseInfo,
+    private val purchaseVerifier: PurchaseVerifier,
+    private val paymentConfiguration: PaymentConfiguration,
+    private val mainThread: PoolakeyThread<() -> Unit>,
+) {
+
+    fun function(request: QueryFunctionRequest): Unit = with(request) {
+        try {
+            var continuationToken: String? = null
+            do {
+                queryBundle(purchaseType, continuationToken)?.takeIf(
+                    thisIsTrue = { bundle ->
+                        bundle.get(MarketIntent.RESPONSE_CODE) == MarketIntent.RESPONSE_RESULT_OK
+                    },
+                    andIfNot = {
+                        mainThread.execute {
+                            PurchaseQueryCallback().apply(callback)
+                                .queryFailed
+                                .invoke(ResultNotOkayException())
+                        }
+                    }
+                )?.takeIf(
+                    thisIsTrue = { bundle ->
+                        bundle.containsKey(MarketIntent.RESPONSE_PURCHASE_ITEM_LIST)
+                            .and(bundle.containsKey(MarketIntent.RESPONSE_PURCHASE_DATA_LIST))
+                            .and(bundle.containsKey(MarketIntent.RESPONSE_DATA_SIGNATURE_LIST))
+                            .and(bundle.getStringArrayList(MarketIntent.RESPONSE_PURCHASE_DATA_LIST) != null)
+                    },
+                    andIfNot = {
+                        mainThread.execute {
+                            PurchaseQueryCallback().apply(callback)
+                                .queryFailed
+                                .invoke(IllegalStateException("Missing data from the received result"))
+                        }
+                    }
+                )?.also { bundle ->
+                    continuationToken = bundle.getString(MarketIntent.RESPONSE_CONTINUATION_TOKEN)
+                }?.let(::extractPurchasedDataFromBundle)?.also { purchasedItems ->
+                    mainThread.execute {
+                        PurchaseQueryCallback().apply(callback).querySucceed.invoke(purchasedItems)
+                    }
+                }
+            } while (!continuationToken.isNullOrBlank())
+        } catch (e: RemoteException) {
+            mainThread.execute {
+                PurchaseQueryCallback().apply(callback).queryFailed.invoke(e)
+            }
+        }
+    }
+
+    private fun extractPurchasedDataFromBundle(bundle: Bundle): List<PurchaseInfo> {
+        val purchaseDataList: List<String> = bundle.getStringArrayList(
+            MarketIntent.RESPONSE_PURCHASE_DATA_LIST
+        ) ?: emptyList()
+        val signatureDataList: List<String> = bundle.getStringArrayList(
+            MarketIntent.RESPONSE_DATA_SIGNATURE_LIST
+        ) ?: emptyList()
+        val validPurchases = ArrayList<PurchaseInfo>(purchaseDataList.size)
+        for (i in purchaseDataList.indices) {
+            if (paymentConfiguration.localSecurityCheck is SecurityCheck.Enable) {
+                val isPurchaseValid = purchaseVerifier.verifyPurchase(
+                    paymentConfiguration.localSecurityCheck.rsaPublicKey,
+                    purchaseDataList[i],
+                    signatureDataList[i]
+                )
+                if (!isPurchaseValid) continue
+            }
+            validPurchases += rawDataToPurchaseInfo.mapToPurchaseInfo(
+                purchaseDataList[i],
+                signatureDataList[i]
+            )
+        }
+        return validPurchases
+    }
+
+}
