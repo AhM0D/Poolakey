@@ -27,6 +27,7 @@ import ir.cafebazaar.poolakey.constant.BazaarIntent
 import ir.cafebazaar.poolakey.constant.BazaarIntent.REQUEST_SKU_DETAILS_LIST
 import ir.cafebazaar.poolakey.constant.Billing
 import ir.cafebazaar.poolakey.constant.Const.BAZAAR_PACKAGE_NAME
+import ir.cafebazaar.poolakey.constant.MarketConfig
 import ir.cafebazaar.poolakey.exception.BazaarNotFoundException
 import ir.cafebazaar.poolakey.exception.BazaarNotSupportedException
 import ir.cafebazaar.poolakey.exception.ConsumeFailedException
@@ -62,6 +63,7 @@ internal class ReceiverBillingConnection(
     private var receiverCommunicator: BillingReceiverCommunicator? = null
     private var disconnected: Boolean = false
     private var bazaarVersionCode: Long = 0L
+    private var marketConfig: MarketConfig? = null
 
     private var purchaseWeakReference: WeakReference<PurchaseWeakHolder>? = null
 
@@ -72,11 +74,14 @@ internal class ReceiverBillingConnection(
         connectionCallbackReference = WeakReference(callback)
         contextReference = WeakReference(context)
 
-        if (Security.verifyBazaarIsInstalled(context).not()) {
+        val marketConfig = MarketConfig.from(context)
+        this.marketConfig = marketConfig
+
+        if (Security.verifyMarketIsInstalled(context, marketConfig).not()) {
             return ConnectionResult.Failed(BazaarNotFoundException())
         }
 
-        bazaarVersionCode = getPackageInfo(context, BAZAAR_PACKAGE_NAME)?.let {
+        bazaarVersionCode = getPackageInfo(context, marketConfig.packageName)?.let {
             sdkAwareVersionCode(it)
         } ?: 0L
 
@@ -94,7 +99,9 @@ internal class ReceiverBillingConnection(
     }
 
     private fun canConnectWithReceiverComponent(): Boolean {
-        return bazaarVersionCode > BAZAAR_WITH_RECEIVER_CONNECTION_VERSION
+        val minVersion = marketConfig?.receiverConnectionMinVersion
+            ?: BAZAAR_WITH_RECEIVER_CONNECTION_VERSION
+        return bazaarVersionCode > minVersion
     }
 
     private fun createReceiverConnection() {
@@ -482,7 +489,7 @@ internal class ReceiverBillingConnection(
 
     companion object {
 
-        private const val BAZAAR_WITH_RECEIVER_CONNECTION_VERSION = 801301
+        private const val BAZAAR_WITH_RECEIVER_CONNECTION_VERSION = 801301L
         private const val BAZAAR_WITH_FEATURE_CONFIG_VERSION = 1400500
 
         private const val DEFAULT_SECURE_SIGNATURE = "secureBroadcastKey"
