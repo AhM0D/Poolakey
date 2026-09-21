@@ -34,8 +34,7 @@ import ir.cafebazaar.poolakey.callback.PurchaseQueryCallback
 import ir.cafebazaar.poolakey.config.PaymentConfiguration
 import ir.cafebazaar.poolakey.constant.BazaarIntent
 import ir.cafebazaar.poolakey.constant.Billing
-import ir.cafebazaar.poolakey.constant.Const.BAZAAR_PACKAGE_NAME
-import ir.cafebazaar.poolakey.constant.Const.BAZAAR_PAYMENT_SERVICE_CLASS_NAME
+import ir.cafebazaar.poolakey.constant.MarketConfig
 import ir.cafebazaar.poolakey.exception.BazaarNotFoundException
 import ir.cafebazaar.poolakey.exception.DisconnectException
 import ir.cafebazaar.poolakey.exception.IAPNotSupportedException
@@ -58,6 +57,8 @@ internal class ServiceBillingConnection(
 
     private val purchaseFunction = PurchaseFunction(context)
 
+    private val marketConfig = MarketConfig.from(context)
+
     private val consumeFunction = ConsumeFunction(mainThread, context)
 
     private var billingService: IInAppBillingService? = null
@@ -71,11 +72,10 @@ internal class ServiceBillingConnection(
         callbackReference = WeakReference(callback)
         contextReference = WeakReference(context)
 
-        return Intent(BILLING_SERVICE_ACTION).apply {
-            `package` = BAZAAR_PACKAGE_NAME
-            setClassName(BAZAAR_PACKAGE_NAME, BAZAAR_PAYMENT_SERVICE_CLASS_NAME)
+        return Intent(marketConfig.bindAddress).apply {
+            `package` = marketConfig.packageName
         }.let {
-            if (Security.verifyBazaarIsInstalled(context) && isServiceAvailable(it)) {
+            if (Security.verifyMarketIsInstalled(context, marketConfig) && isServiceAvailable(it)) {
                 try {
                     context.bindService(it, this, Context.BIND_AUTO_CREATE)
                     ConnectionResult.Success
@@ -287,8 +287,5 @@ internal class ServiceBillingConnection(
                     .isNotEmpty()
     }
 
-    companion object {
-
-        private const val BILLING_SERVICE_ACTION = "ir.cafebazaar.pardakht.InAppBillingService.BIND"
-    }
+    companion object
 }
