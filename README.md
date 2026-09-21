@@ -115,11 +115,20 @@ under an `Editor/` folder:
 </dependencies>
 ```
 
-**2.** Put the placeholders in **`mainTemplate.gradle`**, not `launcherTemplate.gradle`.
+**2.** Put the placeholders in **`launcherTemplate.gradle`**, not `mainTemplate.gradle`.
 
-This is the part that catches people out. EDM4U resolves Android dependencies into the
-`unityLibrary` module, which is generated from `mainTemplate.gradle`. Placeholders declared in
-`launcherTemplate.gradle` apply to the `launcher` module and never reach Poolakey's manifest.
+This is the part that catches people out. `mainTemplate.gradle` is `apply plugin:
+'com.android.library'` — it becomes the `unityLibrary` module, which is where EDM4U resolves
+Poolakey's own dependency and manifest. But an Android **library** module does not substitute
+manifest placeholders; it passes them through unresolved for whatever consumes it. Placeholder
+substitution happens when manifests are *merged*, which occurs in the **application** module —
+`launcherTemplate.gradle`, which is `apply plugin: 'com.android.application'` and becomes the
+`launcher` module. Declare the placeholders there so they resolve into the manifest Poolakey's
+library contributes.
+
+Declaring the same block in `mainTemplate.gradle` too is harmless — a library module simply
+carries it through unused — and is a reasonable safe default if you are unsure which module
+will end up doing the merging.
 
 ```groovy
 def store = project.properties['storeName'] ?: "BAZAAR"
@@ -144,6 +153,10 @@ android {
     }
 }
 ```
+
+Add this to `launcherTemplate.gradle`'s `android { defaultConfig { ... } }` block (Unity's
+generated file for the `com.android.application` module). Keeping an identical copy in
+`mainTemplate.gradle` is optional but does no harm.
 
 **3.** Write `storeName` from an editor build hook, keyed off your scripting define:
 
