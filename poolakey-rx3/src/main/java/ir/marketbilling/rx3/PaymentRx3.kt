@@ -1,20 +1,20 @@
-package ir.cafebazaar.poolakey.rx
+package ir.marketbilling.rx3
 
 import androidx.activity.result.ActivityResultRegistry
-import io.reactivex.Completable
-import io.reactivex.Observable
-import io.reactivex.Single
+import io.reactivex.rxjava3.core.Completable
+import io.reactivex.rxjava3.core.Observable
+import io.reactivex.rxjava3.core.Single
 import ir.marketbilling.Connection
 import ir.marketbilling.Payment
 import ir.marketbilling.entity.PurchaseInfo
 import ir.marketbilling.entity.SkuDetails
 import ir.marketbilling.entity.TrialSubscriptionInfo
 import ir.marketbilling.request.PurchaseRequest
-import ir.cafebazaar.poolakey.rxbase.exception.PurchaseCanceledException
+import ir.marketbilling.rxbase.exception.PurchaseCanceledException
 
 /**
  * You have to use this function to connect to the In-App Billing service. Note that you have to
- * connect to Bazaar's Billing service before using any other available functions, So make sure
+ * connect to the market's Billing service before using any other available functions, So make sure
  * you call this function before doing anything else, also make sure that you are connected to
  * the billing service through Connection.
  * @see Connection
@@ -34,10 +34,10 @@ fun Payment.connect(): Observable<Connection> {
 }
 
 /**
- * You can use this function to navigate user to Bazaar's payment activity to purchase a product.
+ * You can use this function to navigate user to the market's payment activity to purchase a product.
  * Note that for subscribing a product you have to use the 'subscribeProduct' function.
  * @see subscribeProduct
- * @param registry We use this activityResultRegistry instance to actually start Bazaar's payment activity.
+ * @param registry We use this activityResultRegistry instance to actually start the market's payment activity.
  * @param request This contains some information about the product that we are going to purchase.
  * @return Single that you can subscribe to it and get the PurchaseInfo.
  */
@@ -75,10 +75,10 @@ fun Payment.consumeProduct(purchaseToken: String): Completable {
 }
 
 /**
- * You can use this function to navigate user to Bazaar's payment activity to subscribe a product.
+ * You can use this function to navigate user to the market's payment activity to subscribe a product.
  * Note that for purchasing a product you have to use the 'purchaseProduct' function.
  * @see purchaseProduct
- * @param registry We use this activityResultRegistry instance to actually start Bazaar's payment activity.
+ * @param registry We use this activityResultRegistry instance to actually start the market's payment activity.
  * @param request This contains some information about the product that we are going to subscribe.
  * @return Single that you can subscribe to it and get the PurchaseInfo.
  */
@@ -135,9 +135,7 @@ fun Payment.getSubscribedProducts(): Single<List<PurchaseInfo>> {
  * @param skuIds This contain all sku id's that you want to get info about it.
  * @return Single that you can subscribe to it and get the detail of requested sku's.
  */
-fun Payment.getInAppSkuDetails(
-    skuIds: List<String>
-): Single<List<SkuDetails>> {
+fun Payment.getInAppSkuDetails(skuIds: List<String>): Single<List<SkuDetails>> {
     return Single.create { emitter ->
         getInAppSkuDetails(skuIds) {
             getSkuDetailsSucceed { emitter.onSuccess(it) }
@@ -147,13 +145,11 @@ fun Payment.getInAppSkuDetails(
 }
 
 /**
- * You can use this function to get detail of subscriptions sku's,
+ * You can use this function to get detail of subscription sku's,
  * @param skuIds This contain all sku id's that you want to get info about it.
  * @return Single that you can subscribe to it and get the detail of requested sku's.
  */
-fun Payment.getSubscriptionSkuDetails(
-    skuIds: List<String>
-): Single<List<SkuDetails>> {
+fun Payment.getSubscriptionSkuDetails(skuIds: List<String>): Single<List<SkuDetails>> {
     return Single.create { emitter ->
         getSubscriptionSkuDetails(skuIds) {
             getSkuDetailsSucceed { emitter.onSuccess(it) }
