@@ -2,6 +2,7 @@ package ir.cafebazaar.poolakey.constant
 
 import android.content.Context
 import android.content.pm.PackageManager
+import android.os.Bundle
 import android.util.Log
 
 internal data class MarketConfig(
@@ -75,21 +76,36 @@ internal data class MarketConfig(
             return this?.equals("true", ignoreCase = true) ?: false
         }
 
+        // AAPT infers a type for manifest meta-data values that look numeric or
+        // boolean (a version-gate digit string or "true"/"false" is typed as an
+        // Integer/Boolean, not a String). Bundle.getString() on such an entry returns
+        // null because the stored type doesn't match - it does NOT stringify the
+        // value. Reading through the untyped Bundle.get() and calling toString()
+        // normalises every supported type
+        // back to the string resolve() already parses correctly. Do not "simplify" this
+        // back to getString() - that silently reintroduces null reads for every numeric
+        // or boolean market meta-data key (receiver/feature-config gates, subscription
+        // and trial capability flags).
+        @Suppress("DEPRECATION")
+        private fun Bundle?.stringValue(key: String): String? {
+            return this?.get(key)?.toString()
+        }
+
         private fun readMetaData(context: Context): MarketConfig {
             return try {
                 val metaData = context.packageManager
                     .getApplicationInfo(context.packageName, PackageManager.GET_META_DATA)
                     .metaData
                 resolve(
-                    marketId = metaData?.getString(META_DATA_MARKET_ID),
-                    bindAddress = metaData?.getString(META_DATA_BIND_ADDRESS),
-                    hash = metaData?.getString(META_DATA_HASH),
-                    receiverClass = metaData?.getString(META_DATA_RECEIVER_CLASS),
-                    receiverMinVersion = metaData?.getString(META_DATA_RECEIVER_MIN_VERSION),
+                    marketId = metaData.stringValue(META_DATA_MARKET_ID),
+                    bindAddress = metaData.stringValue(META_DATA_BIND_ADDRESS),
+                    hash = metaData.stringValue(META_DATA_HASH),
+                    receiverClass = metaData.stringValue(META_DATA_RECEIVER_CLASS),
+                    receiverMinVersion = metaData.stringValue(META_DATA_RECEIVER_MIN_VERSION),
                     featureConfigMinVersion = metaData
-                        ?.getString(META_DATA_FEATURE_CONFIG_MIN_VERSION),
-                    supportsSubscription = metaData?.getString(META_DATA_SUPPORTS_SUBSCRIPTION),
-                    supportsTrial = metaData?.getString(META_DATA_SUPPORTS_TRIAL)
+                        .stringValue(META_DATA_FEATURE_CONFIG_MIN_VERSION),
+                    supportsSubscription = metaData.stringValue(META_DATA_SUPPORTS_SUBSCRIPTION),
+                    supportsTrial = metaData.stringValue(META_DATA_SUPPORTS_TRIAL)
                 )
             } catch (exception: PackageManager.NameNotFoundException) {
                 Log.w(TAG, "Could not read market meta-data.", exception)

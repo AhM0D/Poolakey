@@ -14,6 +14,24 @@
         <meta-data
             android:name="market_bind"
             android:value="${marketBindAddress}" />
+        <meta-data
+            android:name="market_hash"
+            android:value="${marketHash}" />
+        <meta-data
+            android:name="market_receiver"
+            android:value="${marketReceiverClass}" />
+        <meta-data
+            android:name="market_receiver_min"
+            android:value="${marketReceiverMinVersion}" />
+        <meta-data
+            android:name="market_feature_min"
+            android:value="${marketFeatureConfigMinVersion}" />
+        <meta-data
+            android:name="market_subs"
+            android:value="${marketSupportsSubscription}" />
+        <meta-data
+            android:name="market_trial"
+            android:value="${marketSupportsTrial}" />
 
         <receiver android:name=".receiver.BillingReceiver"
             android:exported="true">
