@@ -5,7 +5,7 @@
         <package android:name="com.farsitel.bazaar" />
     </queries>
 
-    <uses-permission android:name="com.farsitel.bazaar.permission.PAY_THROUGH_BAZAAR" />
+    <uses-permission android:name="${marketPermission}" />
 
     <application>
         <receiver android:name=".receiver.BillingReceiver"
