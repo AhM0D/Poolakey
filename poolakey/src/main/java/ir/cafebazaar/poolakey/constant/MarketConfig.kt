@@ -81,11 +81,10 @@ internal data class MarketConfig(
         // Integer/Boolean, not a String). Bundle.getString() on such an entry returns
         // null because the stored type doesn't match - it does NOT stringify the
         // value. Reading through the untyped Bundle.get() and calling toString()
-        // normalises every supported type
-        // back to the string resolve() already parses correctly. Do not "simplify" this
-        // back to getString() - that silently reintroduces null reads for every numeric
-        // or boolean market meta-data key (receiver/feature-config gates, subscription
-        // and trial capability flags).
+        // normalises every supported type back to the string resolve() already parses
+        // correctly. Do not "simplify" this back to getString() - that silently
+        // reintroduces null reads for every numeric or boolean market meta-data key
+        // (receiver/feature-config gates, subscription and trial capability flags).
         @Suppress("DEPRECATION")
         private fun Bundle?.stringValue(key: String): String? {
             return this?.get(key)?.toString()
